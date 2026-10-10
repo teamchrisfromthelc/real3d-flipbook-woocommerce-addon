@@ -106,7 +106,7 @@ class R3D_Woo {
 		add_shortcode( 'product_flipbook', array( $this, 'product_flipbook_shortcode' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
 
-		add_action( 'woocommerce_thankyou_order_received_text', array( $this, 'change_thankyou_sub_title' ), 20, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', array( $this, 'change_thankyou_sub_title' ), 20, 2 );
 
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'add_link_my_account' ) );
 		add_action( 'woocommerce_account_flipbooks_endpoint', array( $this, 'add_tab_content' ) );
@@ -153,14 +153,23 @@ class R3D_Woo {
 	}
 
 
-	public function change_thankyou_sub_title( $thank_you_title, $order ) {
+	public function change_thankyou_sub_title( $thank_you_title, $order = null ) {
+		// WooCommerce passes false when the order cannot be loaded (invalid ID,
+		// deleted order, or the endpoint hit without a valid order key).
+		if ( ! $order instanceof \WC_Order ) {
+			return $thank_you_title;
+		}
+
 		$global_enabled = (bool) get_option( 'r3d_woo_show_thankyou_flipbook' );
 
 		$title = $thank_you_title;
 		$items = $order->get_items();
 
 		foreach ( $items as $item ) {
-			$product_id       = $item->get_product_id();
+			$product_id = $item->get_product_id();
+			if ( ! $product_id ) {
+				continue;
+			}
 			$product_override = get_post_meta( $product_id, 'r3d_show_thankyou_flipbook', true );
 
 			if ( 'no' === $product_override ) {
