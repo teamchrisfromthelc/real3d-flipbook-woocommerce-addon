@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<ruleset name="Real3D Flipbook WooCommerce Addon">
+	<description>WordPress coding standards.</description>
+
+	<!-- What to scan. Adjust per project; default is everything below root. -->
+	<file>.</file>
+
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
+	<exclude-pattern>/dist/*</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.asset.php</exclude-pattern>
+	<!-- Vendored third-party code (plugin-update-checker). -->
+	<exclude-pattern>/lib/*</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/><!-- Show sniff codes and progress -->
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!--
+		WordPress-Core     formatting: tabs, spacing, Yoda, naming
+		WordPress-Extra    correctness: escaping, nonces, best practice
+		WordPress-Docs     docblocks. Enabled by default — comment out the rule
+		                   below if docblock enforcement is more than you want.
+
+		The tests/ exclusion lives on the Docs rule itself, so commenting that
+		rule out turns docblock enforcement off completely. Do not move it to a
+		separate <rule ref="Squiz.Commenting"> block: Docs is the only standard
+		that pulls Squiz.Commenting in, and it does so with ~35 WordPress-
+		specific exclusions. A standalone reference would re-add the sniff
+		without them, so disabling Docs would make docblock rules *stricter*.
+	-->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs">
+		<!-- Tests document themselves through method names, not docblocks. -->
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
+	<!--
+		The input half of "escape on output, sanitize on input". Extra ships
+		EscapeOutput and NonceVerification but not this one, so without it a
+		nonce-checked handler could write raw $_POST straight to the database
+		and still pass. Also catches missing wp_unslash() and undefined
+		superglobal indexes. This is the same sniff wordpress.org's Plugin Check
+		runs during review, so a plugin failing it fails there too.
+	-->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
+
+	<!-- REPLACE: your text domain -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="real3d-flipbook-woocommerce-addon"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- REPLACE: your global prefixes (functions, classes, constants, options) -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="real3d_flipbook_woocommerce_addon"/>
+				<element value="r3d_woo"/>
+				<element value="R3DWoo"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		Tests follow PHPUnit conventions, not WordPress file conventions:
+		PHPUnit requires ClassNameTest.php, while WPCS wants class-name.php.
+		Also allow unprefixed globals, direct file ops, and looser alignment.
+
+		includes/ is excluded from the same sniff for the same reason: it is
+		PSR-4 autoloaded via composer.json, and PSR-4 requires the filename to
+		match the class name exactly (Settings.php), while WPCS wants
+		class-settings.php. The autoloader cannot find the latter. Files outside
+		includes/ still follow the WordPress convention.
+	-->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+		<exclude-pattern>/includes/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.0"/>
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>

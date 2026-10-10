@@ -1,0 +1,7 @@
+build/
+dist/
+vendor/
+node_modules/
+*.min.css
+# Vendored third-party code (plugin-update-checker)
+lib/
