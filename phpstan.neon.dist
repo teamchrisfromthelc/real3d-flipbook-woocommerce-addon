@@ -1,6 +1,4 @@
 includes:
-	# Pre-preset type debt in includes/main.php. Shrink it, never grow it.
-	- phpstan-baseline.neon
 	# szepeviktor/phpstan-wordpress is auto-registered by phpstan/extension-installer.
 
 parameters:
@@ -23,7 +21,9 @@ parameters:
 			- build (?)
 			- dist (?)
 			- tests (?)
-			# Vendored third-party code (plugin-update-checker).
+		# Vendored plugin-update-checker: not analysed, but scanned so its
+		# classes resolve.
+		analyse:
 			- lib (?)
 
 	# Bootstrap files that define your own constants/functions for analysis.
@@ -39,6 +39,8 @@ parameters:
 	#   composer require --dev php-stubs/woocommerce-stubs
 	scanFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		# Real3D Flipbook is commercial and ships no stubs.
+		- tests/phpstan-stubs.php
 	#
 	# Same shape for other ecosystems: php-stubs/acf-pro-stubs,
 	# php-stubs/wp-cli-stubs, and so on.
@@ -52,3 +54,11 @@ parameters:
 		# of blanket-ignoring once the codebase is clean.
 		-
 			identifier: missingType.iterableValue
+		# buildUpdateChecker() is typed as a union of every checker kind. A GitHub
+		# URL always yields a VCS checker, which has these methods. Narrowing with
+		# instanceof would name PUC's minor-version namespace (v5p5), which is
+		# absent when another plugin loaded a different PUC first.
+		-
+			identifier: method.notFound
+			path: real3d-flipbook-woocommerce-addon.php
+			count: 3
