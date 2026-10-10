@@ -49,9 +49,9 @@ for each line item in order:
 
 1. To enable globally, set the `r3d_woo_show_thankyou_flipbook` option to `true`. This can be done with WP-CLI:
 
-   ```bash
-   wp option update r3d_woo_show_thankyou_flipbook 1
-   ```
+    ```bash
+    wp option update r3d_woo_show_thankyou_flipbook 1
+    ```
 
 2. To override per product, open the product in the editor, find the **Order Confirmation Page** section in the **Real3D Flipbook** meta box, and choose **Enable (always show)** or **Disable (never show)** from the select. Save the product.
 
