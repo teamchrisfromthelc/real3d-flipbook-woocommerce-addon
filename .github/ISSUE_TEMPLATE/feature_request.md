@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-title: "[Feature]: "
+title: '[Feature]: '
 labels: enhancement
 ---
 

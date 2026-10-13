@@ -1,0 +1,29 @@
+// ESLint flat config (ESLint 9+) using WordPress rules.
+// Requires @wordpress/eslint-plugin in devDependencies.
+import wordpress from '@wordpress/eslint-plugin';
+
+export default [
+	...wordpress.configs.recommended,
+	{
+		ignores: [
+			'build/**',
+			'dist/**',
+			'vendor/**',
+			'node_modules/**',
+			'**/*.min.js',
+			// Vendored third-party code (plugin-update-checker).
+			'lib/**',
+			// Vendored Claude Code skills; linted upstream, not here.
+			'.claude/skills/**',
+		],
+	},
+	{
+		languageOptions: {
+			globals: {
+				wp: 'readonly',
+				jQuery: 'readonly',
+				ajaxurl: 'readonly',
+			},
+		},
+	},
+];

@@ -1,0 +1,13 @@
+build/
+dist/
+vendor/
+node_modules/
+# Vendored third-party code (plugin-update-checker)
+lib/
+*.min.js
+*.min.css
+*.asset.php
+package-lock.json
+composer.lock
+# Vendored Claude Code skills; formatted upstream, not here
+.claude/skills/

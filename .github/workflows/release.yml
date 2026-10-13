@@ -1,31 +1,38 @@
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
+    push:
+        tags: ['v*']
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    release:
+        name: Create Release
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Package plugin
-        run: |
-          mkdir -p dist/real3d-flipbook-woocommerce-addon
-          rsync -a --exclude='vendor' --exclude='tests' \
-            --exclude='docs' --exclude='.github' --exclude='.git' \
-            --exclude='phpunit.xml.dist' --exclude='phpcs.xml' \
-            --exclude='composer.json' --exclude='composer.lock' \
-            --exclude='.gitignore' --exclude='.DS_Store' \
-            . dist/real3d-flipbook-woocommerce-addon/
-          cd dist && zip -r real3d-flipbook-woocommerce-addon.zip real3d-flipbook-woocommerce-addon/
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.3'
+                  tools: composer
 
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist/real3d-flipbook-woocommerce-addon.zip
-          generate_release_notes: true
+            # bin/build.sh reads the version from the plugin header. A tag that
+            # disagrees would publish a release plugin-update-checker misreports.
+            - name: Check tag matches Version header
+              run: |
+                  header=$(sed -nE 's/^[[:space:]]*\*?[[:space:]]*Version:[[:space:]]*([^[:space:]]+).*/\1/p' real3d-flipbook-woocommerce-addon.php | head -1)
+                  if [ "v${header}" != "${GITHUB_REF_NAME}" ]; then
+                    echo "::error::Tag ${GITHUB_REF_NAME} does not match Version: ${header}"
+                    exit 1
+                  fi
+
+            - name: Package plugin
+              run: composer build
+
+            - uses: softprops/action-gh-release@v2
+              with:
+                  files: dist/*.zip
+                  generate_release_notes: true

@@ -1,6 +1,12 @@
 <?php
+/**
+ * R3D_Woo: gates Real3D flipbooks behind WooCommerce purchases and subscriptions.
+ *
+ * @package Real3DFlipbookWooCommerceAddon
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit; // Exit if accessed directly.
 }
 
 /** Plugin class. */
@@ -12,8 +18,26 @@ class R3D_Woo {
 	 * @var string
 	 */
 	public $version;
+
+	/**
+	 * Absolute path to the main plugin file.
+	 *
+	 * @var string
+	 */
 	public $path;
+
+	/**
+	 * Plugin directory path, with trailing slash.
+	 *
+	 * @var string
+	 */
 	public $plugin_dir_path;
+
+	/**
+	 * Plugin directory URL, with trailing slash.
+	 *
+	 * @var string
+	 */
 	public $plugin_dir_url;
 
 	const MINIMUM_REAL3D_FLIPBOOK_VERSION = '3.17.1';
@@ -25,15 +49,23 @@ class R3D_Woo {
 	 */
 	private static $instance = null;
 
+	/**
+	 * Returns the shared instance, creating it on first call.
+	 *
+	 * @return self
+	 */
 	public static function get_instance() {
 
-		if ( null == self::$instance ) {
+		if ( null === self::$instance ) {
 			self::$instance = new self();
 		}
 
 		return self::$instance;
 	}
 
+	/**
+	 * Registers the bootstrap hooks. Use get_instance().
+	 */
 	protected function __construct() {
 
 		$this->version         = R3D_WOO_VERSION;
@@ -49,6 +81,11 @@ class R3D_Woo {
 	}
 
 
+	/**
+	 * Activation: registers the endpoint and flushes rewrite rules.
+	 *
+	 * @return void
+	 */
 	public function plugin_activated() {
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -59,31 +96,43 @@ class R3D_Woo {
 		flush_rewrite_rules();
 	}
 
+	/**
+	 * Deactivation: flushes rewrite rules to drop the endpoint.
+	 *
+	 * @return void
+	 */
 	public function plugin_deactivated() {
 		flush_rewrite_rules();
 	}
 
 
+	/**
+	 * Init hook. Kept so existing remove_action() calls keep working.
+	 *
+	 * @return void
+	 */
 	public function init() {
 
 		// Intentionally empty — load_plugin_textdomain moved to plugins_loaded per WordPress handbook.
 	}
 
 	/**
-	 * Check requirements and add actions
+	 * Check requirements and add actions.
+	 *
+	 * @return void
 	 */
 	public function plugins_loaded() {
 
 		load_plugin_textdomain( 'real3d-flipbook-woocommerce-addon', false, plugin_basename( dirname( R3D_WOO_FILE ) ) . '/languages' );
 
-		// Check if Real3D Flipbook is installed
+		// Check if Real3D Flipbook is installed.
 		if ( ! defined( 'REAL3D_FLIPBOOK_VERSION' ) ) {
-			// Display notice that Real3D Flipbook is required
+			// Display notice that Real3D Flipbook is required.
 			add_action( 'admin_notices', array( $this, 'admin_notice_missing_real3d_flipbook' ) );
 			return;
 		}
 
-		// Check for required Real3D Flipbook version
+		// Check for required Real3D Flipbook version.
 		if ( ! version_compare( REAL3D_FLIPBOOK_VERSION, self::MINIMUM_REAL3D_FLIPBOOK_VERSION, '>=' ) ) {
 			add_action( 'admin_notices', array( $this, 'admin_notice_minimum_real3d_flipbook_version' ) );
 			return;
@@ -99,6 +148,7 @@ class R3D_Woo {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_product_admin_assets' ) );
 		add_action( 'save_post', array( $this, 'save_meta_box' ) );
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Public filter; renaming breaks existing sites.
 		if ( apply_filters( 'r3d_auto_inject_product_flipbook', false ) ) {
 			add_action( 'woocommerce_after_single_product_summary', array( $this, 'add_flipbook_shortcode_single_product_page' ), 25 );
 		}
@@ -106,7 +156,7 @@ class R3D_Woo {
 		add_shortcode( 'product_flipbook', array( $this, 'product_flipbook_shortcode' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
 
-		add_action( 'woocommerce_thankyou_order_received_text', array( $this, 'change_thankyou_sub_title' ), 20, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', array( $this, 'change_thankyou_sub_title' ), 20, 2 );
 
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'add_link_my_account' ) );
 		add_action( 'woocommerce_account_flipbooks_endpoint', array( $this, 'add_tab_content' ) );
@@ -119,7 +169,9 @@ class R3D_Woo {
 	}
 
 	/**
-	 * Include admin scripts on WooCommerce single product page
+	 * Include admin scripts on WooCommerce single product page.
+	 *
+	 * @return void
 	 */
 	public function admin_scripts() {
 		global $wp_query, $post;
@@ -129,11 +181,11 @@ class R3D_Woo {
 		$version   = $this->version;
 
 		// Register scripts.
-		wp_register_script( 'r3dwc-admin', $this->plugin_dir_url . 'js/admin.js', array(), $version );
+		wp_register_script( 'r3dwc-admin', $this->plugin_dir_url . 'js/admin.js', array(), $version, false );
 		wp_register_style( 'r3dwc-admin', $this->plugin_dir_url . 'css/admin.css', array(), $version );
 
 		// WooCommerce admin pages.
-		if ( $screen_id == 'product' ) {
+		if ( 'product' === $screen_id ) {
 			wp_enqueue_script( 'r3dwc-admin' );
 			wp_enqueue_style( 'r3dwc-admin' );
 		}
@@ -141,6 +193,8 @@ class R3D_Woo {
 
 	/**
 	 * Auto-inject flipbook on product page (legacy, opt-in via r3d_auto_inject_product_flipbook filter).
+	 *
+	 * @return void
 	 */
 	public function add_flipbook_shortcode_single_product_page() {
 		global $product;
@@ -153,14 +207,33 @@ class R3D_Woo {
 	}
 
 
-	public function change_thankyou_sub_title( $thank_you_title, $order ) {
+	/**
+	 * Appends purchased or preview flipbooks to the order-received text.
+	 *
+	 * @param string $thank_you_title Order-received text.
+	 * @param mixed  $order           WC_Order, or false when WooCommerce cannot load it.
+	 * @return string
+	 */
+	public function change_thankyou_sub_title( $thank_you_title, $order = null ) {
+		// WooCommerce passes false when the order cannot be loaded (invalid ID,
+		// deleted order, or the endpoint hit without a valid order key).
+		if ( ! $order instanceof \WC_Order ) {
+			return $thank_you_title;
+		}
+
 		$global_enabled = (bool) get_option( 'r3d_woo_show_thankyou_flipbook' );
 
 		$title = $thank_you_title;
 		$items = $order->get_items();
 
 		foreach ( $items as $item ) {
-			$product_id       = $item->get_product_id();
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$product_id = $item->get_product_id();
+			if ( ! $product_id ) {
+				continue;
+			}
 			$product_override = get_post_meta( $product_id, 'r3d_show_thankyou_flipbook', true );
 
 			if ( 'no' === $product_override ) {
@@ -174,27 +247,42 @@ class R3D_Woo {
 			$preview_flipbook_id = get_post_meta( $product_id, 'r3d_preview_flipbook_id', true );
 
 			if ( ! empty( $flipbook_id ) && ( $this->check_user_bought_variation_with_flipbook( $product_id ) || $this->has_active_subscription( $product_id ) ) ) {
-				$title .= self::process_flipbook_ids( $flipbook_id, true );
+				$title .= self::process_flipbook_ids( $flipbook_id );
 			} elseif ( ! empty( $preview_flipbook_id ) ) {
-				$title .= self::process_flipbook_ids( $preview_flipbook_id, false );
+				$title .= self::process_flipbook_ids( $preview_flipbook_id );
 			}
 		}
 		return $title;
 	}
 
 
+	/**
+	 * Renders the per-variation flipbook checkbox.
+	 *
+	 * @param int     $loop           Variation index.
+	 * @param array   $variation_data Variation data.
+	 * @param WP_Post $variation      Variation post.
+	 * @return void
+	 */
 	public function add_flipbook_checkbox_next_to_manage_stock( $loop, $variation_data, $variation ) {
-		// Define whether the checkbox is checked; get_post_meta() will return '' if no value is found
+		// Define whether the checkbox is checked; get_post_meta() returns '' when no value is found.
 		$is_checked = get_post_meta( $variation->ID, '_flipbook', true ) === 'yes' ? true : false;
 		?>
 <label class="tips"
 	data-tip="<?php esc_attr_e( 'Check this to hide the flipbook for this variation.', 'real3d-flipbook-woocommerce-addon' ); ?>">
-	<input type="checkbox" class="checkbox" name="flipbook[<?php echo esc_attr( $loop ); ?>]" <?php checked( $is_checked ); ?> />
+	<input type="checkbox" class="checkbox" name="flipbook[<?php echo esc_attr( (string) $loop ); ?>]" <?php checked( $is_checked ); ?> />
 		<?php esc_html_e( 'Flipbook', 'real3d-flipbook-woocommerce-addon' ); ?>
 </label>
 		<?php
 	}
 
+	/**
+	 * Saves the per-variation flipbook checkbox.
+	 *
+	 * @param int $variation_id Variation ID.
+	 * @param int $loop         Variation index in the posted form.
+	 * @return void
+	 */
 	public function save_flipbook_checkbox_value( $variation_id, $loop ) {
 		if ( ! current_user_can( 'edit_post', $variation_id ) ) {
 			return;
@@ -204,6 +292,12 @@ class R3D_Woo {
 		update_post_meta( $variation_id, '_flipbook', $flipbook_value );
 	}
 
+	/**
+	 * Whether the current user bought the product, or a variation of it with the flipbook enabled.
+	 *
+	 * @param int $product_id Product ID. Defaults to the global product.
+	 * @return bool
+	 */
 	public function check_user_bought_variation_with_flipbook( $product_id = 0 ) {
 		global $product;
 
@@ -259,6 +353,11 @@ class R3D_Woo {
 	private function get_purchased_variation_ids( $user, $product_id, $variation_ids ) {
 		global $wpdb;
 
+		/**
+		 * Paid statuses, SQL-escaped. esc_sql() of a string is a string.
+		 *
+		 * @var string[] $statuses
+		 */
 		$statuses        = array_map( 'esc_sql', wc_get_is_paid_statuses() );
 		$statuses_string = "'" . implode( "','", $statuses ) . "'";
 
@@ -341,6 +440,7 @@ class R3D_Woo {
 	 * If current user has active WooCommerce subscription.
 	 *
 	 * @param int $product_id Product ID to scope the subscription check.
+	 * @return bool
 	 */
 	public function has_active_subscription( $product_id = 0 ) {
 		if ( ! is_user_logged_in() ) {
@@ -350,6 +450,7 @@ class R3D_Woo {
 		if ( 0 === $user_id ) {
 			return false;
 		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Public filter; renaming breaks existing sites.
 		$result = apply_filters( 'r3d_has_active_subscription', null, $user_id, $product_id );
 		if ( null !== $result ) {
 			return $result;
@@ -384,6 +485,8 @@ class R3D_Woo {
 
 	/**
 	 * Register meta box(es).
+	 *
+	 * @return void
 	 */
 	public function register_meta_boxes() {
 
@@ -402,14 +505,20 @@ class R3D_Woo {
 
 
 
+	/**
+	 * Renders the flipbook picker meta box.
+	 *
+	 * @param WP_Post $post Product being edited.
+	 * @return void
+	 */
 	public function r3d_meta_box( $post ) {
-		// Fetching flipbook IDs from post metadata
+		// Fetch flipbook IDs from post metadata.
 		$r3d_flipbook_id         = get_post_meta( $post->ID, 'r3d_flipbook_id', true );
 		$r3d_preview_flipbook_id = get_post_meta( $post->ID, 'r3d_preview_flipbook_id', true );
-		// Security field
+		// Security field.
 		wp_nonce_field( 'r3d_save', 'r3d_nonce' );
 
-		// Hidden inputs to store the selected flipbook IDs
+		// Hidden inputs to store the selected flipbook IDs.
 		?>
 <input type="hidden" id="r3d_flipbook_id" name="r3d_flipbook_id" value="<?php echo esc_attr( $r3d_flipbook_id ); ?>">
 <input type="hidden" id="r3d_preview_flipbook_id" name="r3d_preview_flipbook_id"
@@ -428,10 +537,10 @@ class R3D_Woo {
 		$r3d_post_ids = get_posts( $args );
 
 		if ( ! empty( $r3d_post_ids ) ) :
-			// Render flipbooks for purchased products
+			// Render flipbooks for purchased products.
 			self::render_flipbook_thumbnails( $r3d_post_ids, $r3d_flipbook_id, __( 'Select flipbook for purchased product', 'real3d-flipbook-woocommerce-addon' ), '' );
 
-			// Render flipbooks for preview (non-purchased products)
+			// Render flipbooks for preview (non-purchased products).
 			self::render_flipbook_thumbnails( $r3d_post_ids, $r3d_preview_flipbook_id, __( 'Select preview flipbook for non-purchased product', 'real3d-flipbook-woocommerce-addon' ), 'preview-flipbook' );
 
 		else :
@@ -463,6 +572,7 @@ class R3D_Woo {
 	 * Save meta box content.
 	 *
 	 * @param int $post_id Post ID.
+	 * @return void
 	 */
 	public function save_meta_box( $post_id ) {
 
@@ -511,24 +621,38 @@ class R3D_Woo {
 		}
 	}
 
+	/**
+	 * Adds the Purchased Flipbooks item to the My Account menu, before Logout.
+	 *
+	 * @param array<string, string> $items Menu items keyed by endpoint.
+	 * @return array<string, string>
+	 */
 	public function add_link_my_account( $items ) {
 		$flipbooks = $this->get_purchased_flipbooks();
-		if ( ! empty( $flipbooks ) ) {
-			// Insert 'Purchased Flipbooks' before 'Logout'
-			$logout = $items['customer-logout']; // Backup the logout item
-			unset( $items['customer-logout'] ); // Remove the logout item from the array
+		if ( empty( $flipbooks ) ) {
+			return $items;
+		}
 
-			// Add the new 'Purchased Flipbooks' item
-			$items['flipbooks'] = esc_html__( 'Purchased Flipbooks', 'real3d-flipbook-woocommerce-addon' );
+		// Another plugin may have removed Logout; append in that case.
+		$logout = isset( $items['customer-logout'] ) ? $items['customer-logout'] : null;
+		unset( $items['customer-logout'] );
 
-			// Re-add the logout item
+		$items['flipbooks'] = esc_html__( 'Purchased Flipbooks', 'real3d-flipbook-woocommerce-addon' );
+
+		if ( null !== $logout ) {
 			$items['customer-logout'] = $logout;
 		}
+
 		return $items;
 	}
 
 
 
+	/**
+	 * Flipbook IDs from the current user's paid orders, cached for an hour.
+	 *
+	 * @return string[]
+	 */
 	private function get_purchased_flipbooks() {
 		$current_user = wp_get_current_user();
 		if ( 0 === (int) $current_user->ID ) {
@@ -541,19 +665,27 @@ class R3D_Woo {
 			return $cached;
 		}
 
-		$args            = array(
+		$args = array(
 			'customer_id' => $current_user->ID,
 			'limit'       => 100,
 			'status'      => array( 'wc-completed', 'wc-processing' ),
 			'orderby'     => 'date',
 			'order'       => 'DESC',
 		);
+		/**
+		 * Without 'paginate', wc_get_orders() returns an array of orders.
+		 *
+		 * @var WC_Order[] $customer_orders
+		 */
 		$customer_orders = wc_get_orders( $args );
 		$flipbook_ids    = array();
 
 		foreach ( $customer_orders as $order ) {
 			$items = $order->get_items();
 			foreach ( $items as $item ) {
+				if ( ! $item instanceof \WC_Order_Item_Product ) {
+					continue;
+				}
 				$variation_id = $item->get_variation_id();
 				$product_id   = $item->get_product_id();
 				$id_to_check  = $variation_id ? $variation_id : $product_id;
@@ -584,9 +716,14 @@ class R3D_Woo {
 
 
 
+	/**
+	 * Renders the Purchased Flipbooks My Account tab.
+	 *
+	 * @return void
+	 */
 	public function add_tab_content() {
 		$current_user = wp_get_current_user();
-		if ( 0 == $current_user->ID ) {
+		if ( 0 === (int) $current_user->ID ) {
 			return;
 		}
 
@@ -602,10 +739,20 @@ class R3D_Woo {
 
 
 
+	/**
+	 * Registers the flipbooks My Account endpoint.
+	 *
+	 * @return void
+	 */
 	public function add_endpoint() {
 		add_rewrite_endpoint( 'flipbooks', EP_ROOT | EP_PAGES );
 	}
 
+	/**
+	 * Notice: Real3D Flipbook is older than the minimum version.
+	 *
+	 * @return void
+	 */
 	public function admin_notice_minimum_real3d_flipbook_version() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WP core admin activation redirect; no nonce available.
 		if ( isset( $_GET['activate'] ) ) {
@@ -623,6 +770,11 @@ class R3D_Woo {
 		printf( '<div class="notice notice-warning is-dismissible"><p>%1$s</p></div>', wp_kses_post( $message ) );
 	}
 
+	/**
+	 * Notice: Real3D Flipbook is not active.
+	 *
+	 * @return void
+	 */
 	public function admin_notice_missing_real3d_flipbook() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WP core admin activation redirect; no nonce available.
 		if ( isset( $_GET['activate'] ) ) {
@@ -639,6 +791,11 @@ class R3D_Woo {
 		printf( '<div class="notice notice-warning is-dismissible"><p>%1$s</p></div>', wp_kses_post( $message ) );
 	}
 
+	/**
+	 * Notice: WooCommerce is not active.
+	 *
+	 * @return void
+	 */
 	public function admin_notice_missing_woocommerce() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WP core admin activation redirect; no nonce available.
 		if ( isset( $_GET['activate'] ) ) {
@@ -711,7 +868,7 @@ class R3D_Woo {
 		}
 
 		$shortcode_output = '';
-		if ( $show_full && $first_flipbook_id ) {
+		if ( $show_full ) {
 			$shortcode_output = do_shortcode(
 				'[real3dflipbook id="' . esc_attr( $first_flipbook_id ) . '" mode="' . esc_attr( $mode ) . '"]'
 			);
@@ -738,6 +895,8 @@ class R3D_Woo {
 
 	/**
 	 * Enqueue frontend CSS for the product flipbook wrapper on product pages.
+	 *
+	 * @return void
 	 */
 	public function enqueue_frontend_styles() {
 		if ( ! is_singular( 'product' ) ) {
@@ -767,10 +926,9 @@ class R3D_Woo {
 	 * Build flipbook shortcode output for a semicolon-separated list of IDs.
 	 *
 	 * @param  string $flipbook_ids Semicolon-separated flipbook IDs.
-	 * @param  bool   $is_purchased Whether the product has been purchased.
 	 * @return string Rendered shortcode HTML for all valid IDs.
 	 */
-	private static function process_flipbook_ids( $flipbook_ids, $is_purchased ) {
+	private static function process_flipbook_ids( $flipbook_ids ) {
 		$title_addition     = '';
 		$flipbook_ids_array = explode( ';', $flipbook_ids );
 
@@ -791,10 +949,11 @@ class R3D_Woo {
 	 * @param int[]  $r3d_post_ids          Array of r3d post IDs to display.
 	 * @param string $selected_flipbook_ids Semicolon-separated currently-selected IDs.
 	 * @param string $section_title         Heading text for the section.
-	 * @param string $css_class                 Additional CSS class for the wrapper element.
+	 * @param string $css_class             Additional CSS class for the wrapper element.
+	 * @return void
 	 */
 	private static function render_flipbook_thumbnails( $r3d_post_ids, $selected_flipbook_ids, $section_title, $css_class ) {
-		$selected_flipbook_ids_array = explode( ';', $selected_flipbook_ids );
+		$selected_flipbook_ids_array = array_map( 'trim', explode( ';', $selected_flipbook_ids ) );
 		$total                       = count( $r3d_post_ids );
 		$wrapper_id                  = 'r3d-wrapper-' . sanitize_html_class( $css_class ? $css_class : 'purchased' );
 
@@ -807,7 +966,7 @@ class R3D_Woo {
 			$name          = get_the_title( $post_id );
 			$name          = empty( $name ) ? __( ' (no title)', 'real3d-flipbook-woocommerce-addon' ) : $name;
 			$thumbnail_url = isset( $flipbook['lightboxThumbnailUrl'] ) ? $flipbook['lightboxThumbnailUrl'] : '';
-			echo "<div class='r3d-thumb " . ( in_array( (string) $post_id, $selected_flipbook_ids_array ) ? 'r3d-thumb-selected' : '' ) . "' data-id='" . esc_attr( $post_id ) . "'>";
+			echo "<div class='r3d-thumb " . ( in_array( (string) $post_id, $selected_flipbook_ids_array, true ) ? 'r3d-thumb-selected' : '' ) . "' data-id='" . esc_attr( (string) $post_id ) . "'>";
 			echo "<div class='r3d-thumb-img' style='background-image: url(\"" . esc_url( $thumbnail_url ) . "\");'></div>";
 			echo "<p class='r3d-thumb-name'>" . esc_html( $name ) . '</p>';
 			echo '</div>';
@@ -819,6 +978,8 @@ class R3D_Woo {
 
 	/**
 	 * Enqueue admin scripts/styles for flipbook picker search on product screens.
+	 *
+	 * @return void
 	 */
 	public function enqueue_product_admin_assets() {
 		$screen = get_current_screen();

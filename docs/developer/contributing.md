@@ -94,8 +94,8 @@ To test purchase verification and product flipbooks:
 Releases are automated via GitHub Actions. To create a new release:
 
 1. Update the version number in:
-   - `real3d-flipbook-woocommerce-addon.php` (plugin header `Version:` field)
-   - `real3d-flipbook-woocommerce-addon.php` (`R3D_WOO_VERSION` constant)
+    - `real3d-flipbook-woocommerce-addon.php` (plugin header `Version:` field)
+    - `real3d-flipbook-woocommerce-addon.php` (`R3D_WOO_VERSION` constant)
 2. Commit the version bump.
 3. Tag and push:
 

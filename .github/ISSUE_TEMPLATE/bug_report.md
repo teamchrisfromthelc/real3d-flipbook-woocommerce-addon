@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-title: "[Bug]: "
+title: '[Bug]: '
 labels: bug
 ---
 

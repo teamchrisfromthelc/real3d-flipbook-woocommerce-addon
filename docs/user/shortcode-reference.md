@@ -25,13 +25,13 @@ When `r3d_flipbook_id` contains a semicolon-separated list of IDs, only the **fi
 
 ```html
 <div class="r3d-product-flipbook-wrap">
-  <!-- [real3dflipbook] output here -->
-  <div class="r3d-product-flipbook-play" aria-hidden="true">
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="32" fill="rgba(0,0,0,0.55)" />
-      <polygon points="26,20 26,44 46,32" fill="#fff" />
-    </svg>
-  </div>
+	<!-- [real3dflipbook] output here -->
+	<div class="r3d-product-flipbook-play" aria-hidden="true">
+		<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+			<circle cx="32" cy="32" r="32" fill="rgba(0,0,0,0.55)" />
+			<polygon points="26,20 26,44 46,32" fill="#fff" />
+		</svg>
+	</div>
 </div>
 ```
 
