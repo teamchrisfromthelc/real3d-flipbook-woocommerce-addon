@@ -1,141 +1,113 @@
 # real3d-flipbook-woocommerce-addon
 
-WordPress plugin. Tooling from WP Preset. See that repository's README for the full
-reference.
+WordPress plugin that gates Real3D Flipbook flipbooks behind WooCommerce
+purchases and subscriptions. Buyers get the full flipbook; everyone else gets the
+preview. Tooling comes from WP Preset (see that repo's README for the full
+reference).
+
+It depends on two plugins at runtime. WooCommerce is free. Real3D Flipbook is a
+commercial CodeCanyon plugin, so neither wp-env nor CI has it (see Tests below).
+
+It ships through GitHub releases and
+[plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker),
+not wordpress.org. There's no `readme.txt` and that's on purpose.
 
 ## Commands
 
-`build` means two different things here — check which one is wanted:
-
-| Command          | Does                                                                         |
-| ---------------- | ---------------------------------------------------------------------------- |
-| `npm run build`  | Compiles `src/` → `build/` (wp-scripts). This is "build the assets".         |
-| `composer build` | Packages `dist/<slug>-<version>.zip` for install. This is "build a release". |
-
-No `src/` is scaffolded — create it when you have assets to compile. Until then
-`npm run build` has nothing to do, and `composer build` skips it rather than
-running it, so a release zip carries no `build/` directory. Once `src/` exists,
-`composer build` compiles it first, provided `node_modules` is installed.
-`composer build -- --dev` skips that step for faster iteration.
-
 ```bash
-composer build             # package dist/<slug>-<version>.zip
-npm run build              # compiles src/ -> build/ (wp-scripts)
 composer phpcbf            # autofix PHP
 composer phpcs             # report what phpcbf could not fix
-composer phpstan           # static analysis, level 8
+composer phpstan           # static analysis, level 8, no baseline
 composer lint              # phpcs + phpstan
-composer test              # unit tests — fast, no WordPress
-composer test:integration  # integration tests — run inside wp-env, see below
-composer check             # would this pass wordpress.org review? Needs Docker
+composer test              # unit tests: fast, no WordPress
+composer test:integration  # integration tests: run inside wp-env, see below
+composer build             # package dist/<slug>-<version>.zip
 npm run lint:js            # ESLint
+npm run lint:css           # Stylelint
 npm run format             # Prettier
-npm run env:start          # local WordPress
+npm run env:start          # local WordPress with WooCommerce
 ```
+
+There's no `src/` and nothing for `npm run build` to compile. The JS and CSS in
+`js/` and `css/` ship as written.
+
+## Code layout
+
+- `real3d-flipbook-woocommerce-addon.php` defines `R3D_WOO_VERSION` and
+  `R3D_WOO_FILE`, boots plugin-update-checker, then creates the `R3D_Woo`
+  singleton.
+- `includes/main.php` holds all of `R3D_Woo`. It's a global class in a WordPress
+  style file, required directly. Nothing is Composer autoloaded and the plugin
+  never loads `vendor/autoload.php`, so a new class needs its own `require_once`
+  in the entry file.
+- `lib/plugin-update-checker/` is vendored third-party code, including its own
+  `vendor/` folder that PUC needs at runtime. Don't edit it. PHPCS, ESLint,
+  Stylelint and Prettier skip it. PHPStan scans it for types but doesn't analyse
+  it.
+- `docs/` holds user and developer docs. It doesn't ship in the release zip.
 
 ## Conventions
 
-- **Formatting is automatic, for edits made with Write or Edit.** A `PostToolUse`
-  hook runs phpcbf then phpcs on PHP, eslint on JS/TS, and prettier on
-  JS/TS/CSS/SCSS/JSON/Markdown/YAML. Don't run formatters by hand for a file you
-  just edited — read the hook output instead. Each toolchain stays quiet until
-  its own install has run, so PHP is still linted with only `composer install`
-  done.
-- **A file changed any other way is not formatted.** The hook matches `Write` and
-  `Edit` only, so anything written through a shell command — a heredoc, `sed -i`
-  — skips it. Run the formatter yourself after those.
-- **`lint:css` is not part of the hook.** Prettier formats CSS, but stylelint
-  runs only when you invoke `npm run lint:css`.
-- **PHPCS and ESLint violations reported after an edit are yours to fix.** The
-  hook exits 2 with the report; those are the ones autofix could not resolve.
-- **Escape on output, sanitize on input.** PHPCS fails the build on either.
-  Every superglobal read needs `wp_unslash()` and a `sanitize_*()` call, plus an
-  `isset()` guard — a nonce check alone does not make the value safe.
-- **Prefix every global.** Functions, classes, constants, and option names.
-  PHPCS enforces the project's prefixes.
-- **Classes go in `includes/`, named for the class.** That directory is PSR-4
-  autoloaded under the project's class prefix, so `R3DWoo\Settings` must live
-  at `includes/Settings.php` — **not** `class-settings.php`. The WordPress
-  filename convention breaks the autoloader, so `phpcs.xml.dist` excludes
-  `includes/` from `WordPress.Files.FileName`. Everywhere else still uses the
-  WordPress convention. No `require` is needed; the entry point already loads
-  `vendor/autoload.php`.
-- **Tests:** pure logic goes in `tests/unit/` (WP_Mock, no WordPress); anything
-  touching the database, the query loop, or real hooks goes in
-  `tests/integration/` (`WP_UnitTestCase`). Run the integration suite inside
-  wp-env:
-  `npx wp-env run tests-cli --env-cwd=wp-content/plugins/<project-folder> composer test:integration`
-  — that path is the directory name, which is not necessarily the slug.
-- **Building on another plugin? Install its stubs before writing code.** PHPStan
-  ships WordPress core stubs only. Targeting WooCommerce without
-  `php-stubs/woocommerce-stubs` means every `wc_*()` call reports as
-  `function.notFound` and every class extending a `WC_*` parent reports each
-  inherited property as `property.notFound` — a wall of errors that look like
-  real bugs but are missing type information. Install the stubs and uncomment
-  `scanFiles` in `phpstan.neon.dist`:
+- **Formatting is automatic for edits made with Write or Edit.** A `PostToolUse`
+  hook runs phpcbf then phpcs on PHP, eslint on JS, and prettier on
+  JS/CSS/JSON/Markdown/YAML. Read the hook output; don't rerun the formatters by
+  hand for a file you just edited.
+- **Shell edits skip the hook.** Heredocs and `sed -i` don't trigger it, so run
+  the formatter yourself after those. Stylelint never runs in the hook; run
+  `npm run lint:css` when you touch CSS.
+- **PHPCS and ESLint violations reported after an edit are yours to fix.**
+- **PHP 7.4 and WordPress 6.0 are the floor.** The plugin header says so,
+  Composer resolves dependencies for 7.4, and PHPCompatibility flags anything
+  newer. No union types, `match`, named arguments or other 8.0+ syntax.
+- **Prefixes:** `r3d_woo_` / `R3D_WOO_` for new functions, constants, options and
+  hooks. Two older public filters, `r3d_auto_inject_product_flipbook` and
+  `r3d_has_active_subscription`, predate that rule and carry a `phpcs:ignore`.
+  Don't rename them; sites hook them.
+- **Types live in docblocks, not native declarations.** Most methods are hook
+  callbacks, and a native return type turns a filter that returns the wrong type
+  into a fatal error. PHPStan reads the `@param` and `@return` tags.
+- **Escape on output, sanitize on input.** Every superglobal read needs
+  `isset()`, `wp_unslash()` and a `sanitize_*()` call. A nonce check alone
+  doesn't make the value safe.
+
+## Tests
+
+- `tests/unit/` uses WP_Mock, with no WordPress or database. The bootstrap
+  defines the plugin's constants and requires `includes/main.php`. `R3D_Woo` is a
+  singleton, so mock its constructor's WordPress calls in every test (see the
+  `instance()` helper in `R3DWooTest.php`).
+- `tests/integration/` uses `WP_UnitTestCase` against real WordPress. The
+  bootstrap defines `REAL3D_FLIPBOOK_VERSION` to fake Real3D Flipbook, because
+  the addon checks only that constant before registering its hooks. It doesn't
+  load WooCommerce, so `function_exists( 'WC' )` is false there and the WooCommerce
+  hooks never register; call methods directly.
+- Run the integration suite inside wp-env. The `--env-cwd` path is the checkout's
+  folder name, which may differ from the slug:
 
     ```bash
-    composer require --dev php-stubs/woocommerce-stubs
+    npm run env:start
+    npx wp-env run tests-cli --env-cwd=wp-content/plugins/real3d-flipbook-woocommerce-addon-repo composer test:integration
     ```
 
-    Same for ACF (`php-stubs/acf-pro-stubs`), WP-CLI (`php-stubs/wp-cli-stubs`),
-    and others.
-
-## Checking against wordpress.org
-
-`composer check` runs [Plugin Check](https://wordpress.org/plugins/plugin-check/),
-the same tool wordpress.org runs during review. It boots WordPress in Docker, so
-it takes a minute or two — run it before a release, not on every edit. PHPCS
-already covers the sniff-based half of those checks continuously.
-
-It checks the **built zip**, not the working directory. The working tree carries
-`tests/`, `.claude/` and `AGENTS.md`, none of which ship, and Plugin Check flags
-every one of them. Checking the zip is the difference between a clean run and
-fifteen findings about files that were never going to be released.
-
-```bash
-composer check                            # table
-composer check -- --json > findings.json  # for an agent to read
-```
-
-**The output is findings to assess, not a task list.** Plugin Check flags
-patterns that are usually wrong and occasionally correct. Working through the
-list uncritically makes the code worse. Read each finding, decide whether it
-applies here, and pass `--ignore-codes` for the ones you have judged and
-rejected. `ERROR` blocks a submission; `WARNING` does not.
-
-Note a zero exit does not mean the plugin passed: Plugin Check always exits 0
-whatever it found. In JSON mode an empty array means clean. A **non-zero** exit
-means the check could not run — Docker down, zip unreadable — and JSON mode then
-prints nothing at all, so an empty payload is never mistaken for a pass.
-
-Findings you have judged and rejected go in `--ignore-codes`, which is passed
-through along with the other `wp plugin check` options:
-
-```bash
-composer check -- --json --ignore-codes=some_code
-```
-
-`Tested up to:` in `readme.txt` goes stale on its own. wordpress.org treats a
-value behind the current WordPress release as an error and drops the plugin from
-search results, so it needs bumping when WordPress ships a major version even if
-nothing else changed. `composer check` is what tells you.
+- CI runs the integration suite across PHP 7.4 to 8.4 and two WordPress
+  versions with `tests/bin/install-wp-tests.sh` instead of wp-env, because wp-env
+  runs one PHP version at a time. Keep that script.
+- PHPStan gets WooCommerce types from `php-stubs/woocommerce-stubs` and
+  `r3d_get_flipbook()` from `tests/phpstan-stubs.php`. Add any other Real3D
+  Flipbook function you call to that file.
 
 ## Releasing
 
-1. Bump the version in **all three** places: the `Version:` header and the
-   `*_VERSION` constant in the main plugin file, and `Stable tag:` in
-   `readme.txt`. `composer build` fails if any of them disagree. The stable tag
-   is the one wordpress.org reads to decide which release to serve, so a stale
-   one keeps the old version live no matter what was uploaded.
-2. `composer lint && composer test`
-3. `composer build` → `dist/<slug>-<version>.zip`
-4. `composer check` before a wordpress.org submission.
+1. Bump the version in the `Version:` header and `R3D_WOO_VERSION` in
+   `real3d-flipbook-woocommerce-addon.php`. `composer build` fails if they
+   disagree. `tests/integration/WooAddonTest.php` also asserts the version, so
+   update it too.
+2. Add the release to `CHANGELOG.md`.
+3. `composer lint && composer test`, then the integration suite.
+4. Merge to `main`, tag `v<version>` and push the tag. `release.yml` checks the
+   tag against the `Version:` header, runs `composer build` and attaches the zip
+   to a GitHub release. Sites pick it up through plugin-update-checker, which
+   installs the first asset on the latest release.
 
-`dist/` and `build/` are gitignored. Never commit either.
-
-## For AI agents without an instructions convention
-
-If your tool reads neither `AGENTS.md` nor `CLAUDE.md` automatically, point it
-at this file, or paste the Commands and Conventions sections into its system
-prompt. Nothing here is tool-specific.
+`composer build` on its own gives you the same zip in `dist/` for a manual
+install. `dist/` is gitignored.
