@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name:   Real3D Flipbook WooCommerce Addon
- * Plugin URI:    https://github.com/chrisfromthelc/real3d-flipbook-woocommerce-addon
+ * Plugin URI:    https://github.com/teamchrisfromthelc/real3d-flipbook-woocommerce-addon
  * Description:   Addon for Real3D Flipbook. Checks WC product purchase status and displays flipbook.
  * Version:       1.6.2
  * Author:        chrisfromthelc
- * Author URI:    https://github.com/chrisfromthelc
+ * Author URI:    https://github.com/teamchrisfromthelc
  * Requires at least: 6.0
  * Requires PHP:  7.4
  * Text Domain:   real3d-flipbook-woocommerce-addon
@@ -29,7 +29,7 @@ if ( ! class_exists( 'YahnisElsts\\PluginUpdateChecker\\v5\\PucFactory' ) ) {
 	require_once __DIR__ . '/lib/plugin-update-checker/plugin-update-checker.php';
 }
 $r3d_woo_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-	'https://github.com/chrisfromthelc/real3d-flipbook-woocommerce-addon/',
+	'https://github.com/teamchrisfromthelc/real3d-flipbook-woocommerce-addon/',
 	__FILE__,
 	'real3d-flipbook-woocommerce-addon'
 );
