@@ -170,6 +170,8 @@ rsync -a \
 	--exclude '/.github/' \
 	--exclude '/.gitattributes' \
 	--exclude '/.claude/' \
+	--exclude '/.codex/' \
+	--exclude '/.agents/' \
 	--exclude '/.verify/' \
 	--exclude '/CLAUDE.md' \
 	--exclude '/AGENTS.md' \
